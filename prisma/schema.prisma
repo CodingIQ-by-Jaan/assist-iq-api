@@ -1,0 +1,108 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Rol {
+  SUPER_ADMIN
+  ADMIN_EMPRESA
+}
+
+enum TipoMarcaje {
+  ENTRADA
+  INICIO_ALMUERZO
+  FIN_ALMUERZO
+  SALIDA
+}
+
+model Empresa {
+  id              String   @id @default(uuid()) @db.Uuid
+  nombre          String
+  // Identificador público usado en la URL del kiosco de marcaje
+  slug            String   @unique
+  rtn             String?
+  // Los marcajes se guardan en UTC; la zona se usa para clasificar horas diurnas/nocturnas
+  zonaHoraria     String   @default("America/Tegucigalpa")
+  // Contador para generar códigos de empleado autoincrementales por empresa
+  siguienteCodigo Int      @default(1)
+  activa          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+
+  empleados Empleado[]
+  usuarios  UsuarioAdmin[]
+  marcajes  Marcaje[]
+
+  @@map("empresas")
+}
+
+model UsuarioAdmin {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  nombre       String
+  rol          Rol
+  // Null para SUPER_ADMIN (ve todas las empresas)
+  empresaId    String?  @db.Uuid
+  activo       Boolean  @default(true)
+  // Se incrementa para invalidar todos los tokens emitidos
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  empresa Empresa? @relation(fields: [empresaId], references: [id])
+
+  @@index([empresaId])
+  @@map("usuarios_admin")
+}
+
+model Empleado {
+  id               String    @id @default(uuid()) @db.Uuid
+  empresaId        String    @db.Uuid
+  // Código corto que el empleado escribe al marcar (único por empresa)
+  codigo           String
+  pinHash          String
+  nombre           String
+  apellido         String
+  identidad        String?
+  cargo            String?
+  activo           Boolean   @default(true)
+  intentosFallidos Int       @default(0)
+  bloqueadoHasta   DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+
+  empresa  Empresa   @relation(fields: [empresaId], references: [id])
+  marcajes Marcaje[]
+
+  @@unique([empresaId, codigo])
+  @@unique([empresaId, identidad])
+  @@index([empresaId, activo])
+  @@map("empleados")
+}
+
+// Tabla de solo inserción: las correcciones irán en una tabla de ajustes (fase 5)
+model Marcaje {
+  id         String      @id @default(uuid()) @db.Uuid
+  empresaId  String      @db.Uuid
+  empleadoId String      @db.Uuid
+  tipo       TipoMarcaje
+  // Hora del servidor en UTC, nunca la del dispositivo
+  marcadoEn  DateTime    @default(now()) @db.Timestamptz(3)
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+
+  empresa  Empresa  @relation(fields: [empresaId], references: [id])
+  empleado Empleado @relation(fields: [empleadoId], references: [id])
+
+  @@index([empleadoId, marcadoEn])
+  @@index([empresaId, marcadoEn])
+  @@map("marcajes")
+}
