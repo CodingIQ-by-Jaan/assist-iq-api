@@ -10,15 +10,15 @@ const main = async () => {
     throw new Error('Define SEED_ADMIN_PASSWORD (mínimo 8 caracteres)');
   }
 
+  const passwordHash = await bcrypt.hash(password, 12);
+  const nombre = process.env.SEED_ADMIN_NOMBRE ?? 'Administrador';
+
   const admin = await prisma.usuarioAdmin.upsert({
     where: { email },
-    update: {},
-    create: {
-      email,
-      nombre: process.env.SEED_ADMIN_NOMBRE ?? 'Administrador',
-      passwordHash: await bcrypt.hash(password, 12),
-      rol: Rol.SUPER_ADMIN,
-    },
+    // Si ya existe, actualiza contraseña y nombre (y reactiva la cuenta por si estaba desactivada).
+    // tokenVersion++ invalida cualquier sesión/token viejo emitido con la contraseña anterior.
+    update: { passwordHash, nombre, activo: true, tokenVersion: { increment: 1 } },
+    create: { email, nombre, passwordHash, rol: Rol.SUPER_ADMIN },
   });
   console.log(`SUPER_ADMIN listo: ${admin.email}`);
 };
