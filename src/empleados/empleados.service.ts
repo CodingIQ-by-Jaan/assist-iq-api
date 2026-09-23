@@ -28,11 +28,20 @@ const SELECT_EMPLEADO = {
   apellido: true,
   identidad: true,
   cargo: true,
+  salarioBase: true,
   activo: true,
   bloqueadoHasta: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.EmpleadoSelect;
+
+type EmpleadoSeleccionado = Prisma.EmpleadoGetPayload<{ select: typeof SELECT_EMPLEADO }>;
+
+// Prisma.Decimal se serializa como string en JSON: se convierte a number para el frontend
+const serializarEmpleado = (empleado: EmpleadoSeleccionado) => ({
+  ...empleado,
+  salarioBase: empleado.salarioBase === null ? null : Number(empleado.salarioBase),
+});
 
 @Injectable()
 export class EmpleadosService {
@@ -88,7 +97,7 @@ export class EmpleadosService {
       this.prisma.empleado.count({ where }),
     ]);
 
-    return paginar(data, total, query);
+    return paginar(data.map(serializarEmpleado), total, query);
   }
 
   async obtener(usuario: UsuarioAutenticado, id: string) {
@@ -98,7 +107,7 @@ export class EmpleadosService {
     });
     if (!empleado) throw new NotFoundException('Empleado no encontrado');
     filtroEmpresa(usuario, empleado.empresaId); // lanza 403 si es de otra empresa
-    return empleado;
+    return serializarEmpleado(empleado);
   }
 
   async crear(usuario: UsuarioAutenticado, dto: CreateEmpleadoDto) {
@@ -133,20 +142,22 @@ export class EmpleadosService {
         apellido: dto.apellido,
         identidad: dto.identidad,
         cargo: dto.cargo,
+        salarioBase: dto.salarioBase,
       },
       select: SELECT_EMPLEADO,
     });
 
-    return { empleado, pin };
+    return { empleado: serializarEmpleado(empleado), pin };
   }
 
   async actualizar(usuario: UsuarioAutenticado, id: string, dto: UpdateEmpleadoDto) {
     await this.obtener(usuario, id);
-    return this.prisma.empleado.update({
+    const empleado = await this.prisma.empleado.update({
       where: { id },
       data: dto,
       select: SELECT_EMPLEADO,
     });
+    return serializarEmpleado(empleado);
   }
 
   // También desbloquea al empleado si estaba bloqueado por intentos fallidos

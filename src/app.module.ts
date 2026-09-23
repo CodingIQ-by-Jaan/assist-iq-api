@@ -6,12 +6,23 @@ import { EmpresasModule } from './empresas/empresas.module';
 import { EmpleadosModule } from './empleados/empleados.module';
 import { UsuariosAdminModule } from './usuarios-admin/usuarios-admin.module';
 import { MarcajesModule } from './marcajes/marcajes.module';
+import { ReportesModule } from './reportes/reportes.module';
+import { ReglasRecargoModule } from './reglas-recargo/reglas-recargo.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 @Module({
-  imports: [PrismaModule, AuthModule, EmpresasModule, EmpleadosModule, UsuariosAdminModule, MarcajesModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    EmpresasModule,
+    EmpleadosModule,
+    UsuariosAdminModule,
+    MarcajesModule,
+    ReportesModule,
+    ReglasRecargoModule,
+  ],
   providers: [
     // El orden importa: primero autenticación, luego roles
     { provide: APP_GUARD, useClass: JwtAuthGuard },

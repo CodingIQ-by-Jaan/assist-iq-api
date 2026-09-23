@@ -37,9 +37,10 @@ model Empresa {
   createdAt       DateTime @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @db.Timestamptz(3)
 
-  empleados Empleado[]
-  usuarios  UsuarioAdmin[]
-  marcajes  Marcaje[]
+  empleados     Empleado[]
+  usuarios      UsuarioAdmin[]
+  marcajes      Marcaje[]
+  reglasRecargo ReglaRecargo[]
 
   @@map("empresas")
 }
@@ -75,6 +76,9 @@ model Empleado {
   identidad        String?
   cargo            String?
   activo           Boolean   @default(true)
+  // Salario base mensual en Lempiras. La tarifa por hora se deriva como salarioBase / 240
+  // (30 días × 8 horas), convención estándar en Honduras. Null = sin salario definido.
+  salarioBase      Decimal?  @db.Decimal(10, 2)
   intentosFallidos Int       @default(0)
   bloqueadoHasta   DateTime? @db.Timestamptz(3)
   createdAt        DateTime  @default(now()) @db.Timestamptz(3)
@@ -107,4 +111,27 @@ model Marcaje {
   @@index([empleadoId, marcadoEn])
   @@index([empresaId, marcadoEn])
   @@map("marcajes")
+}
+
+// Reglas de recargo por franja horaria (ej. nocturnidad): un porcentaje extra que se paga
+// sobre las horas trabajadas dentro de un horario específico. horaFin < horaInicio significa
+// que la banda cruza la medianoche (ej. 20:00–04:00). Las bandas activas de una empresa nunca
+// se solapan entre sí (se valida al crear/editar).
+model ReglaRecargo {
+  id         String   @id @default(uuid()) @db.Uuid
+  empresaId  String   @db.Uuid
+  nombre     String
+  // Formato "HH:mm", hora local de la empresa (Empresa.zonaHoraria)
+  horaInicio String
+  horaFin    String
+  // Porcentaje extra sobre la tarifa base, ej. 25.00 = 25% adicional
+  porcentaje Decimal  @db.Decimal(5, 2)
+  activa     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@index([empresaId])
+  @@map("reglas_recargo")
 }

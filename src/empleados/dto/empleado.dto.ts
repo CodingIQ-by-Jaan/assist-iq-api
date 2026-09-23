@@ -3,11 +3,13 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { PaginationDto, PaginationMetaDto } from '../../common/dto/pagination.dto';
 import { aBooleano, recortar } from '../../common/utils/transforms';
@@ -72,6 +74,18 @@ export class CreateEmpleadoDto {
   @IsString()
   @MaxLength(80)
   cargo?: string;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 12000,
+    minimum: 0,
+    nullable: true,
+    description: 'Salario base mensual en Lempiras. La tarifa por hora usada en los reportes se deriva como salarioBase / 240 (30 días × 8 horas). Se omite (o null) si aún no se define.',
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  salarioBase?: number | null;
 }
 
 export class UpdateEmpleadoDto extends PartialType(OmitType(CreateEmpleadoDto, ['empresaId', 'pin'] as const)) {
@@ -115,6 +129,7 @@ export class EmpleadoDto {
   @ApiProperty() apellido: string;
   @ApiProperty({ nullable: true, type: String }) identidad: string | null;
   @ApiProperty({ nullable: true, type: String }) cargo: string | null;
+  @ApiProperty({ nullable: true, type: Number }) salarioBase: number | null;
   @ApiProperty() activo: boolean;
   @ApiProperty({ nullable: true, type: Date, description: 'Si tiene valor futuro, el empleado está bloqueado por intentos fallidos' })
   bloqueadoHasta: Date | null;
