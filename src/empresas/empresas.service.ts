@@ -52,6 +52,7 @@ export class EmpresasService {
         slug: dto.slug ?? slugify(dto.nombre),
         rtn: dto.rtn,
         zonaHoraria: dto.zonaHoraria,
+        limiteEmpleados: dto.limiteEmpleados,
       },
     });
   }

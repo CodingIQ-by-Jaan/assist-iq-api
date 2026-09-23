@@ -32,6 +32,8 @@ model Empresa {
   // Contador para generar códigos de empleado autoincrementales por empresa
   siguienteCodigo Int      @default(1)
   activa          Boolean  @default(true)
+  // Tope de empleados activos permitidos (según el plan contratado). Null = sin límite.
+  limiteEmpleados Int?
   createdAt       DateTime @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @db.Timestamptz(3)
 

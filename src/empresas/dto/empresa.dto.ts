@@ -2,12 +2,14 @@ import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsTimeZone,
   Matches,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { PaginationDto, PaginationMetaDto } from '../../common/dto/pagination.dto';
 import { aBooleano, recortar } from '../../common/utils/transforms';
@@ -43,6 +45,18 @@ export class CreateEmpresaDto {
   @IsOptional()
   @IsTimeZone()
   zonaHoraria?: string;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 15,
+    minimum: 0,
+    nullable: true,
+    description: 'Tope de empleados activos permitidos según el plan contratado. Se omite (o null) para sin límite.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  limiteEmpleados?: number | null;
 }
 
 export class UpdateEmpresaDto extends PartialType(CreateEmpresaDto) {
@@ -72,6 +86,7 @@ export class EmpresaDto {
   @ApiProperty() slug: string;
   @ApiProperty({ nullable: true, type: String }) rtn: string | null;
   @ApiProperty() zonaHoraria: string;
+  @ApiProperty({ nullable: true, type: Number }) limiteEmpleados: number | null;
   @ApiProperty() activa: boolean;
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;

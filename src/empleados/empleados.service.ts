@@ -106,10 +106,19 @@ export class EmpleadosService {
 
     const empresa = await this.prisma.empresa.findUnique({
       where: { id: empresaId },
-      select: { activa: true },
+      select: { activa: true, limiteEmpleados: true },
     });
     if (!empresa) throw new NotFoundException('Empresa no encontrada');
     if (!empresa.activa) throw new BadRequestException('La empresa está desactivada');
+
+    if (empresa.limiteEmpleados !== null) {
+      const activos = await this.prisma.empleado.count({ where: { empresaId, activo: true } });
+      if (activos >= empresa.limiteEmpleados) {
+        throw new ConflictException(
+          `Se alcanzó el límite de empleados de esta empresa (${empresa.limiteEmpleados})`,
+        );
+      }
+    }
 
     if (dto.pin) this.validarPin(dto.pin);
     const pin = dto.pin ?? generarPin();
